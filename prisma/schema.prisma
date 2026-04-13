@@ -1,0 +1,143 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  CUSTOMER
+  SALES_REP
+  ADMIN
+}
+
+enum MotorcycleType {
+  SPORT
+  MATIC
+  UNDERBONE
+  BIG_BIKE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum LeadStatus {
+  NEW
+  FOLLOW_UP
+  HOT
+  CONVERTED
+  LOST
+}
+
+enum FinanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String    // Hashed password
+  name      String
+  role      Role      @default(CUSTOMER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  bookings             Booking[]
+  leads                Lead[]                 @relation("AssignedLeads")
+  financingApplications FinancingApplication[]
+}
+
+model Dealer {
+  id        String    @id @default(uuid())
+  name      String
+  location  String
+  contact   String
+  bookings  Booking[] // Test rides assigned to this dealer
+}
+
+model Motorcycle {
+  id           String         @id @default(uuid())
+  name         String
+  type         MotorcycleType
+  engineSize   Int            // In cc (e.g., 150)
+  price        Float
+  image        String         // URL to image
+  description  String
+  specs        Json?          // Flexible JSON for detailed specs
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  bookings              Booking[]
+  leads                 Lead[]
+  promotions            Promotion[]
+  financingApplications FinancingApplication[]
+}
+
+model Booking {
+  id           String         @id @default(uuid())
+  userId       String
+  motorcycleId String
+  dealerId     String
+  date         DateTime
+  timeSlot     String         // e.g., "10:00 AM - 11:00 AM"
+  notes        String?
+  notified     Boolean        @default(false)
+  status       BookingStatus  @default(PENDING)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id])
+  motorcycle   Motorcycle     @relation(fields: [motorcycleId], references: [id])
+  dealer       Dealer         @relation(fields: [dealerId], references: [id])
+}
+
+model Lead {
+  id              String      @id @default(uuid())
+  customerName    String
+  customerEmail   String?
+  customerPhone   String?
+  status          LeadStatus  @default(NEW)
+  assignedToId    String?     // Associated Sales Rep
+  assignedTo      User?       @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  notes           String?
+  followUpDate    DateTime?
+  motorcycleId    String?
+  motorcycle      Motorcycle? @relation(fields: [motorcycleId], references: [id])
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model Promotion {
+  id             String      @id @default(uuid())
+  title          String
+  description    String
+  discountAmount Float?      // Flat amount
+  discountPerc   Float?      // Percentage
+  startDate      DateTime
+  endDate        DateTime
+  isActive       Boolean     @default(true)
+  motorcycleId   String?     // Null means site-wide
+  motorcycle     Motorcycle? @relation(fields: [motorcycleId], references: [id])
+  createdAt      DateTime    @default(now())
+}
+
+model FinancingApplication {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  motorcycleId  String
+  motorcycle    Motorcycle    @relation(fields: [motorcycleId], references: [id])
+  downPayment   Float
+  tenureMonths  Int
+  monthlyEst    Float
+  status        FinanceStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+}
