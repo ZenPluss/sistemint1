@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Calculator, CheckCircle } from "lucide-react";
+import toast from "react-hot-toast";
 
 type Motorcycle = {
   id: string;
@@ -21,6 +22,9 @@ export default function CreditSimulatorPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [currency, setCurrency] = useState("USD");
+  const currencyRates: any = { USD: 1, EUR: 0.92, IDR: 15600, JPY: 150 };
+
   useEffect(() => {
     fetch("/api/motorcycles")
       .then(res => res.json())
@@ -28,7 +32,14 @@ export default function CreditSimulatorPage() {
         setMotorcycles(data);
         if (data.length > 0) setSelectedMotorcycle(data[0]);
       });
+      
+    // Read currrency
+    const match = document.cookie.match(/(^| )currency=([^;]+)/);
+    if (match) setCurrency(match[2]);
   }, []);
+
+  const rate = currencyRates[currency] || 1;
+  const formatCurrency = (val: number, hideDecimals = true) => new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: hideDecimals ? 0 : 2 }).format(val * rate);
 
   const price = selectedMotorcycle?.price || 15000;
   
@@ -58,6 +69,8 @@ export default function CreditSimulatorPage() {
       const userJSON = localStorage.getItem("user");
       const userId = userJSON ? JSON.parse(userJSON).id : undefined;
 
+      const loadingToast = toast.loading("Submitting your financing application...");
+
       const res = await fetch("/api/financing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -69,10 +82,13 @@ export default function CreditSimulatorPage() {
         }),
       });
 
+      toast.dismiss(loadingToast);
       if (!res.ok) throw new Error("Failed to submit application");
       
+      toast.success(`🎉 Application for ${selectedMotorcycle.name} submitted! We will contact you soon.`, { duration: 5000 });
       setSuccess(true);
     } catch (err: any) {
+      toast.error(err.message || "Submission failed. Please login first.");
       setError(err.message || "An error occurred");
     } finally {
       setLoading(false);
@@ -123,14 +139,14 @@ export default function CreditSimulatorPage() {
                     onChange={(e) => setSelectedMotorcycle(motorcycles.find(m => m.id === e.target.value) || null)}
                     value={selectedMotorcycle?.id || ""}
                   >
-                    {motorcycles.map(m => <option key={m.id} value={m.id}>{m.name} (${m.price.toLocaleString()})</option>)}
+                    {motorcycles.map(m => <option key={m.id} value={m.id}>{m.name} ({formatCurrency(m.price)})</option>)}
                   </select>
                 </div>
 
                 <div>
                   <div className="flex justify-between">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Down Payment ($)</label>
-                    <span className="text-sm font-medium text-blue-600">${downPayment.toLocaleString()}</span>
+                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Down Payment ({currency})</label>
+                    <span className="text-sm font-medium text-blue-600">{formatCurrency(downPayment)}</span>
                   </div>
                   <input
                     type="range"
@@ -172,15 +188,15 @@ export default function CreditSimulatorPage() {
                 <div className="mt-8 space-y-4">
                   <div className="flex justify-between border-b border-zinc-800 pb-4">
                     <span className="text-zinc-400">Total Price</span>
-                    <span className="font-medium">${price.toLocaleString()}</span>
+                    <span className="font-medium">{formatCurrency(price)}</span>
                   </div>
                   <div className="flex justify-between border-b border-zinc-800 pb-4">
                     <span className="text-zinc-400">Down Payment</span>
-                    <span className="font-medium">-${downPayment.toLocaleString()}</span>
+                    <span className="font-medium">-{formatCurrency(downPayment)}</span>
                   </div>
                   <div className="flex justify-between border-zinc-800 pt-2">
                     <span className="text-zinc-400">Amount Financed</span>
-                    <span className="font-medium">${Math.max(0, principal).toLocaleString()}</span>
+                    <span className="font-medium">{formatCurrency(Math.max(0, principal))}</span>
                   </div>
                 </div>
               </div>
@@ -188,7 +204,7 @@ export default function CreditSimulatorPage() {
               <div className="mt-12 rounded-xl bg-blue-600 p-6 text-center shadow-lg shadow-blue-900/50">
                 <span className="block text-sm font-medium text-blue-200">Estimated Monthly Installment</span>
                 <span className="mt-2 block text-4xl font-bold tracking-tight">
-                  ${monthlyEst.toFixed(2)}
+                  {formatCurrency(monthlyEst, false)}
                 </span>
                 <span className="mt-1 block text-xs text-blue-200">Includes 8% APR Interest</span>
               </div>

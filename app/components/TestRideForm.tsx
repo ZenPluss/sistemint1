@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Calendar, MapPin } from "lucide-react";
+import toast from "react-hot-toast";
 
 type Motorcycle = {
   id: string;
@@ -41,6 +42,7 @@ export default function TestRideForm({
     };
 
     try {
+      const loadingToast = toast.loading("Submitting your test ride request...");
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -49,9 +51,13 @@ export default function TestRideForm({
 
       if (!res.ok) {
         const errData = await res.json();
+        toast.dismiss(loadingToast);
+        toast.error(errData.error || "Failed to book. Please login first.");
         throw new Error(errData.error || "Failed to book");
       }
 
+      toast.dismiss(loadingToast);
+      toast.success("✅ Test ride booked! The dealer will contact you shortly.", { duration: 5000 });
       setSuccess(true);
       e.currentTarget.reset();
     } catch (err: any) {

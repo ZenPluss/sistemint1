@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Plus, Trash2, Tag, Calendar, ArrowLeft } from "lucide-react";
+import toast from "react-hot-toast";
 
 type Campaign = {
   id: string;
@@ -37,9 +38,13 @@ export default function CampaignsPage() {
   }, []);
 
   const handleAdd = async () => {
-    if (!form.title || !form.startDate || !form.endDate) return;
+    if (!form.title || !form.startDate || !form.endDate) {
+      toast.error("Please fill in Title, Start Date and End Date.");
+      return;
+    }
     
     try {
+      const loadingToast = toast.loading("Saving campaign...");
       const res = await fetch("/api/promotions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,13 +57,18 @@ export default function CampaignsPage() {
           endDate: form.endDate,
         })
       });
+      toast.dismiss(loadingToast);
       if (res.ok) {
+        toast.success("Campaign saved to database!");
         setForm({ title: "", description: "", discountPerc: "", discountAmount: "", startDate: "", endDate: "" });
         setShowForm(false);
         fetchCampaigns();
+      } else {
+        toast.error("Failed to save campaign.");
       }
     } catch (e) {
       console.error(e);
+      toast.error("An unexpected error occurred.");
     }
   };
 
@@ -66,9 +76,11 @@ export default function CampaignsPage() {
     if (!confirm("Are you sure?")) return;
     try {
       await fetch(`/api/promotions?id=${id}`, { method: "DELETE" });
+      toast.success("Campaign deleted.");
       fetchCampaigns();
     } catch (e) {
       console.error(e);
+      toast.error("Failed to delete campaign.");
     }
   };
 
@@ -79,9 +91,11 @@ export default function CampaignsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, isActive: !currentStatus })
       });
+      toast.success(currentStatus ? "Campaign deactivated." : "Campaign activated! 🎉");
       fetchCampaigns();
     } catch (e) {
       console.error(e);
+      toast.error("Failed to update campaign status.");
     }
   };
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -30,10 +31,16 @@ export default function LoginPage() {
 
       const resData = await res.json();
       localStorage.setItem("user", JSON.stringify(resData.user));
+      toast.success(`Welcome back, ${resData.user.name}! 🎉`);
       // redirect to home
-      window.location.href = "/";
+      setTimeout(() => { window.location.href = "/"; }, 800);
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred");
+      toast.error(err.message || "Login failed!");
+      // Add a small delay so user can read error, then redirect to register
+      setTimeout(() => {
+        window.location.href = "/auth/register";
+      }, 2000);
     } finally {
       setLoading(false);
     }
@@ -54,8 +61,9 @@ export default function LoginPage() {
         
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-200 dark:bg-red-900/20 dark:border-red-900/50 dark:text-red-400">
-              {error}
+            <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 border border-red-200 dark:bg-red-900/20 dark:border-red-900/50 dark:text-red-400 space-y-1">
+              <p className="font-bold">{error}</p>
+              <p className="text-xs text-red-400">Akun tidak ditemukan. Mengarahkan ke halaman Registrasi dalam 2 detik...</p>
             </div>
           )}
           

@@ -8,16 +8,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    const role = email === 'admin@gmail.com' ? 'ADMIN' : 'CUSTOMER';
+
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: password,
-        role: "CUSTOMER"
+        role: role
       }
     });
 
-    return NextResponse.json({ success: true, user: { id: user.id, name: user.name, email: user.email } }, { status: 201 });
+    return NextResponse.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } }, { status: 201 });
   } catch (error: any) {
     if (error.code === 'P2002') {
       return NextResponse.json({ error: "Email already registered" }, { status: 409 });

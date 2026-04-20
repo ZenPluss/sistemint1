@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Check, Gauge, Banknote, Navigation } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import BuyModal from "@/components/BuyModal";
 
 export default async function MotorcycleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -93,7 +94,13 @@ export default async function MotorcycleDetailPage({ params }: { params: Promise
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 mt-auto">
-               <Link href="/#test-ride" className="flex-1 inline-flex h-14 items-center justify-center rounded-xl bg-blue-600 px-8 text-base font-bold text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98]">
+               <BuyModal
+                 motorcycleId={motorcycle.id}
+                 motorcycleName={motorcycle.name}
+                 motorcyclePrice={motorcycle.price}
+                 motorcycleImage={motorcycle.image}
+               />
+               <Link href="/#test-ride" className="flex-1 inline-flex h-14 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-8 text-base font-bold text-zinc-900 transition-all hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800">
                  Book Test Ride
                </Link>
                <Link href={`/simulate-credit?model=${motorcycle.id}`} className="flex-1 inline-flex h-14 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-8 text-base font-bold text-zinc-900 transition-all hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800">

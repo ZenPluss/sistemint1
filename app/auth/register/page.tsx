@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
@@ -25,16 +26,23 @@ export default function RegisterPage() {
         body: JSON.stringify(data),
       });
 
+      // Added: Read response body only once
+      const resData = await res.json();
+
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to register");
+        throw new Error(resData.error || "Failed to register");
       }
 
       setSuccess(true);
-      // Basic login state tracking for demo purposes
-      localStorage.setItem("user", JSON.stringify((await res.json()).user));
+      toast.success("Account created! Redirecting to login...", { duration: 3000 });
+      // Added: Redirect to login page after 2 seconds so user can log in and get JWT cookie
+      setTimeout(() => {
+        window.location.href = "/auth/login";
+      }, 2000);
+
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred");
+      toast.error(err.message || "Registration failed!");
     } finally {
       setLoading(false);
     }
@@ -55,14 +63,16 @@ export default function RegisterPage() {
         
         {success ? (
           <div className="text-center py-6">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 mb-4">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 mb-4 text-2xl">
               ✓
             </div>
-            <h3 className="text-xl font-bold">Registration Successful</h3>
-            <p className="text-sm text-zinc-500 mt-2 mb-6">Your account has been created successfully.</p>
-            <Link href="/" className="w-full inline-flex justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700">
-              Go to Home Directory
-            </Link>
+            <h3 className="text-xl font-bold">Registration Successful!</h3>
+            <p className="text-sm text-zinc-500 mt-2 mb-6">
+              Akun Anda berhasil dibuat. Mengarahkan ke halaman Login...
+            </p>
+            <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-1.5">
+              <div className="bg-blue-600 h-1.5 rounded-full animate-[width_2s_ease-in-out]" style={{width:'100%', transition:'width 2s'}}></div>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">

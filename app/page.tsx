@@ -2,10 +2,13 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-import { ArrowRight, Calendar, Info, Tag, ChevronRight, Zap, Shield, Sparkles, Calculator, BarChart2, Users } from "lucide-react";
+import { Calendar, Info, Tag, ChevronRight, Zap, Shield, Sparkles, Calculator, ArrowRight } from "lucide-react";
 import AntigravityCanvas from "@/components/AntigravityCanvas";
 import TestRideForm from "./components/TestRideForm";
 import { prisma } from "@/lib/prisma";
+import NavbarClient from "@/components/NavbarClient";
+import { cookies } from "next/headers";
+import AdminPortalSection from "@/components/AdminPortalSection";
 
 // Fallback images based on index
 const fallbacks = [
@@ -24,6 +27,12 @@ export default async function Home() {
   const allMotorcycles = await prisma.motorcycle.findMany({ select: { id: true, name: true } });
   const allDealers = await prisma.dealer.findMany({ select: { id: true, name: true, location: true } });
 
+  const cookieStore = await cookies();
+  const currency = cookieStore.get('currency')?.value || 'USD';
+  const currencyRates: any = { USD: 1, EUR: 0.92, IDR: 15600, JPY: 150 };
+  const rate = currencyRates[currency] || 1;
+  const formatCurrency = (val: number, hideDecimals = true) => new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: hideDecimals ? 0 : 2 }).format(val * rate);
+
   // If DB is empty, use our dummy fallbacks for the UI display only!
   const displayMotorcycles = dbMotorcycles.length > 0 ? dbMotorcycles.map((m, i) => ({
     id: m.id,
@@ -41,58 +50,65 @@ export default async function Home() {
   return (
     <div className="flex min-h-screen flex-col font-sans bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 selection:bg-blue-600/30">
       {/* Premium Navbar with Glassmorphism */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 glass-dark backdrop-blur-xl transition-all">
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/40 backdrop-blur-xl transition-all">
         <div className="container mx-auto flex h-20 items-center justify-between px-6 md:px-12">
           <Link href="/" className="flex items-center gap-3 transition-transform hover:scale-105">
             <div className="rounded-full bg-white p-1 shadow-sm">
               <img src="/favicon.ico" alt="Suzuki Logo" className="h-8 w-auto" />
             </div>
-            <span className="text-xl font-extrabold tracking-tight text-blue-700 dark:text-blue-500 hidden sm:inline-block">
+            <span className="text-xl font-extrabold tracking-tight text-white hidden sm:inline-block drop-shadow-sm">
               SuzukiRide
             </span>
           </Link>
           <nav className="hidden md:flex gap-8 text-sm font-semibold tracking-wide">
-            <Link href="#models" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Models</Link>
-            <Link href="#test-ride" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Test Ride</Link>
-            <Link href="/portal/leads" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Dealers Portal</Link>
+            <Link href="#models" className="text-zinc-200 hover:text-white transition-colors">Models</Link>
+            <Link href="#test-ride" className="text-zinc-200 hover:text-white transition-colors">Test Ride</Link>
+            <Link href="/portal/leads" className="text-zinc-200 hover:text-white transition-colors">Dealers Portal</Link>
           </nav>
-          <div className="flex items-center gap-4">
-            <Link href="/auth/login" className="text-sm font-bold text-zinc-300 hover:text-white transition-colors">Login</Link>
-            <Link href="/auth/register" className="hidden sm:inline-flex h-11 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-8 text-sm font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] hover:scale-105 active:scale-95 text-center">
-              Sign Up
-            </Link>
-          </div>
+          {/* Added: NavbarClient shows login/register buttons OR user info + logout after login */}
+          <NavbarClient />
         </div>
       </header>
 
       <main className="flex-1">
-        {/* Improved Hero Section with Radial Gradients */}
-        {/* Antigravity-Style Hero Section */}
-        <section className="relative w-full py-32 md:py-48 lg:py-56 bg-white dark:bg-[#07090e] overflow-hidden isolate">
-          {/* Animated Component Background matching Antigravity */}
-          <AntigravityCanvas />
+        {/* YouTube Video Hero Section */}
+        <section className="relative w-full py-32 md:py-48 lg:py-56 overflow-hidden isolate">
+          {/* YouTube Video Background */}
+          <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
+            <iframe
+              src="https://www.youtube.com/embed/uJzN9uGHneU?autoplay=1&mute=1&loop=1&playlist=uJzN9uGHneU&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&start=17"
+              title="Hero Background Video"
+              allow="autoplay; encrypted-media"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[177.78vh] min-w-full min-h-full h-[56.25vw]"
+              style={{ border: 'none' }}
+            />
+            {/* Dark gradient overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/60 to-black/80" />
+            {/* Bottom fade */}
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-zinc-50 dark:from-zinc-950 to-transparent" />
+          </div>
 
           <div className="container relative z-10 mx-auto px-6 md:px-12 flex flex-col items-center text-center gap-8 animate-fade-in-up">
-            <div className="inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/10 px-5 py-2 text-sm font-extrabold text-blue-600 dark:text-blue-400 backdrop-blur-md shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+            <div className="inline-flex items-center rounded-full border border-blue-400/40 bg-blue-500/20 px-5 py-2 text-sm font-extrabold text-blue-300 backdrop-blur-md shadow-[0_0_20px_rgba(59,130,246,0.2)]">
               <Sparkles className="mr-2 h-4 w-4" /> 2025 Models Released
             </div>
-            <h1 className="max-w-4xl text-6xl font-black tracking-tighter text-zinc-900 dark:text-white sm:text-7xl md:text-8xl drop-shadow-sm leading-[1.05]">
+            <h1 className="max-w-4xl text-6xl font-black tracking-tighter text-white sm:text-7xl md:text-8xl drop-shadow-[0_2px_20px_rgba(0,0,0,0.8)] leading-[1.05]">
               Thrill Meets <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-blue-600">Pure Performance</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-300">Pure Performance</span>
             </h1>
-            <p className="max-w-2xl text-xl text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">
+            <p className="max-w-2xl text-xl text-zinc-200 font-medium leading-relaxed drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]">
               Discover our latest lineup of sport bikes, adventure motorcycles, and agile scooters designed to conquer every road.
             </p>
             <div className="flex flex-col sm:flex-row gap-5 mt-6 justify-center w-full">
               <a
                 href="#models"
-                className="group inline-flex h-14 w-full sm:w-auto items-center justify-center rounded-full bg-zinc-900 dark:bg-white px-10 text-base font-extrabold text-white dark:text-zinc-950 shadow-[0_10px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all hover:scale-105 active:scale-95"
+                className="group inline-flex h-14 w-full sm:w-auto items-center justify-center rounded-full bg-white px-10 text-base font-extrabold text-zinc-950 shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all hover:scale-105 active:scale-95"
               >
                 Explore Models <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </a>
               <a
                 href="#test-ride"
-                className="inline-flex h-14 w-full sm:w-auto items-center justify-center rounded-full border-2 border-zinc-200 dark:border-white/20 bg-white/50 dark:bg-white/5 backdrop-blur-md px-10 text-base font-bold text-zinc-900 dark:text-white transition-all hover:bg-zinc-100 dark:hover:bg-white/10 hover:scale-105 active:scale-95 shadow-sm"
+                className="inline-flex h-14 w-full sm:w-auto items-center justify-center rounded-full border-2 border-white/30 bg-white/10 backdrop-blur-md px-10 text-base font-bold text-white transition-all hover:bg-white/20 hover:scale-105 active:scale-95 shadow-sm"
               >
                 Book a Test Ride
               </a>
@@ -119,7 +135,7 @@ export default async function Home() {
                   </div>
                   <div className="flex w-full items-center justify-between mb-4 px-2">
                     <span className="rounded-full bg-blue-50 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">{m.type}</span>
-                    <span className="text-sm font-extrabold text-zinc-900 dark:text-white">From ${m.price.toLocaleString()}</span>
+                    <span className="text-sm font-extrabold text-zinc-900 dark:text-white">From {formatCurrency(m.price)}</span>
                   </div>
                   <h3 className="text-3xl font-black mb-3 px-2 tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{m.name}</h3>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8 px-2 line-clamp-2 leading-relaxed font-medium">
@@ -216,7 +232,7 @@ export default async function Home() {
               ))}
             </div>
             <div className="mt-20 flex justify-center">
-              <Link href="/portal/campaigns" className="inline-flex h-14 items-center justify-center rounded-full bg-white px-10 text-base font-extrabold text-zinc-950 shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all hover:bg-zinc-200 hover:scale-105 active:scale-95">
+              <Link href="/promotions" className="inline-flex h-14 items-center justify-center rounded-full bg-white px-10 text-base font-extrabold text-zinc-950 shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all hover:bg-zinc-200 hover:scale-105 active:scale-95">
                 View All Promotions
               </Link>
             </div>
@@ -244,28 +260,47 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Portal / Internal Tools Section */}
-        <section className="w-full py-32 bg-[var(--background)] border-t border-zinc-200/50 dark:border-white/5 relative">
-          <div className="container mx-auto px-6 md:px-12">
-            <div className="text-center mb-20 animate-fade-in-up">
-              <h2 className="text-4xl font-black tracking-tight sm:text-5xl text-zinc-900 dark:text-white">Sales Team Portal</h2>
-              <p className="text-xl text-zinc-500 dark:text-zinc-400 mt-6 max-w-2xl mx-auto font-medium leading-relaxed">Access the internal tools to manage dealership operations, leads, and overarching sales analytics.</p>
-            </div>
-            <div className="grid gap-8 sm:grid-cols-3 max-w-6xl mx-auto">
-              {[
-                { href: "/portal/leads", icon: <Users className="h-8 w-8" />, title: "Lead Management", desc: "Track and manage potential customers seamlessly across the sales pipeline." },
-                { href: "/portal/performance", icon: <BarChart2 className="h-8 w-8" />, title: "Sales Analytics", desc: "Monitor team performance metrics, overarching targets, and conversion rates." },
-                { href: "/portal/campaigns", icon: <Tag className="h-8 w-8" />, title: "Campaign Manager", desc: "Strategize, create and deploy robust promotions and marketing campaigns." },
-              ].map((item, i) => (
-                <Link key={i} href={item.href} className="group flex flex-col gap-5 rounded-[2rem] border border-zinc-200/80 bg-white p-10 transition-all duration-500 hover:border-blue-400 hover:shadow-[0_30px_60px_-15px_rgba(37,99,235,0.15)] hover:-translate-y-2 dark:border-white/5 dark:bg-[#0c0e14] dark:hover:border-blue-600/50 dark:hover:shadow-[0_30px_60px_-15px_rgba(37,99,235,0.2)]">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-blue-50 text-blue-600 shadow-inner dark:bg-blue-900/20 dark:text-blue-400 transition-all group-hover:bg-blue-600 group-hover:text-white group-hover:shadow-[0_10px_20px_rgba(37,99,235,0.4)] group-hover:scale-110">{item.icon}</div>
-                  <div className="mt-2">
-                    <h3 className="font-extrabold text-2xl mb-3 text-zinc-900 dark:text-white">{item.title}</h3>
-                    <p className="text-lg text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">{item.desc}</p>
+        <AdminPortalSection />
+        {/* Dealer Locations Section */}
+        <section className="w-full py-24 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800">
+          <div className="container mx-auto px-6 md:px-12 text-center animate-fade-in-up">
+            <h2 className="text-4xl font-black tracking-tight sm:text-5xl text-zinc-900 dark:text-white mb-6">Our Dealership Network</h2>
+            <p className="text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto mb-16 font-medium leading-relaxed">
+              Find a Suzuki dealership near you and experience the thrill firsthand. We have certified service centers and experts waiting for you.
+            </p>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto text-left">
+              {allDealers.length > 0 ? (
+                allDealers.map((dealer: any) => (
+                  <div key={dealer.id} className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:-translate-y-2 hover:shadow-xl transition-all">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 p-2 rounded-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                      </div>
+                      <h3 className="text-xl font-bold text-zinc-900 dark:text-white">{dealer.name}</h3>
+                    </div>
+                    <p className="text-zinc-600 dark:text-zinc-400 ml-12">{dealer.location}</p>
                   </div>
-                  <span className="mt-auto pt-6 text-sm font-extrabold text-blue-600 flex items-center gap-2 group-hover:gap-3 transition-all dark:text-blue-400 uppercase tracking-widest">Access Portal <ArrowRight className="h-4 w-4" /></span>
-                </Link>
-              ))}
+                ))
+              ) : (
+                <>
+                  {/* Dummy Data in case there are no dealers */}
+                  {[
+                    { id: 1, name: "Suzuki Pusat Jakarta", location: "Jl. Jend. Sudirman, Jakarta Pusat" },
+                    { id: 2, name: "Suzuki Motor Bandung", location: "Jl. Asia Afrika, Bandung" },
+                    { id: 3, name: "Suzuki Surabaya Raya", location: "Jl. Tunjungan, Surabaya" },
+                  ].map(dealer => (
+                    <div key={dealer.id} className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:-translate-y-2 hover:shadow-xl transition-all">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 p-2 rounded-xl">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-zinc-900 dark:text-white">{dealer.name}</h3>
+                      </div>
+                      <p className="text-zinc-600 dark:text-zinc-400 ml-12">{dealer.location}</p>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </section>

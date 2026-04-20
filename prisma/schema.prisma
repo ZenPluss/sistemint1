@@ -44,15 +44,16 @@ enum FinanceStatus {
 model User {
   id        String    @id @default(uuid())
   email     String    @unique
-  password  String    // Hashed password
+  password  String
   name      String
   role      Role      @default(CUSTOMER)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  bookings             Booking[]
-  leads                Lead[]                 @relation("AssignedLeads")
+  bookings              Booking[]
+  leads                 Lead[]                 @relation("AssignedLeads")
   financingApplications FinancingApplication[]
+  saleOrders            SaleOrder[]
 }
 
 model Dealer {
@@ -60,18 +61,18 @@ model Dealer {
   name      String
   location  String
   contact   String
-  bookings  Booking[] // Test rides assigned to this dealer
+  bookings  Booking[]
 }
 
 model Motorcycle {
   id           String         @id @default(uuid())
   name         String
   type         MotorcycleType
-  engineSize   Int            // In cc (e.g., 150)
+  engineSize   Int
   price        Float
-  image        String         // URL to image
+  image        String
   description  String
-  specs        Json?          // Flexible JSON for detailed specs
+  specs        Json?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -79,65 +80,134 @@ model Motorcycle {
   leads                 Lead[]
   promotions            Promotion[]
   financingApplications FinancingApplication[]
+  saleOrders            SaleOrder[]
 }
 
 model Booking {
-  id           String         @id @default(uuid())
+  id           String        @id @default(uuid())
   userId       String
   motorcycleId String
   dealerId     String
   date         DateTime
-  timeSlot     String         // e.g., "10:00 AM - 11:00 AM"
+  timeSlot     String
   notes        String?
-  notified     Boolean        @default(false)
-  status       BookingStatus  @default(PENDING)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  notified     Boolean       @default(false)
+  status       BookingStatus @default(PENDING)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  user         User           @relation(fields: [userId], references: [id])
-  motorcycle   Motorcycle     @relation(fields: [motorcycleId], references: [id])
-  dealer       Dealer         @relation(fields: [dealerId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+  motorcycle Motorcycle @relation(fields: [motorcycleId], references: [id])
+  dealer     Dealer     @relation(fields: [dealerId], references: [id])
 }
 
 model Lead {
-  id              String      @id @default(uuid())
-  customerName    String
-  customerEmail   String?
-  customerPhone   String?
-  status          LeadStatus  @default(NEW)
-  assignedToId    String?     // Associated Sales Rep
-  assignedTo      User?       @relation("AssignedLeads", fields: [assignedToId], references: [id])
-  notes           String?
-  followUpDate    DateTime?
-  motorcycleId    String?
-  motorcycle      Motorcycle? @relation(fields: [motorcycleId], references: [id])
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id             String     @id @default(uuid())
+  customerName   String
+  customerEmail  String?
+  customerPhone  String?
+  status         LeadStatus @default(NEW)
+  assignedToId   String?
+  assignedTo     User?      @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  notes          String?
+  followUpDate   DateTime?
+  motorcycleId   String?
+  motorcycle     Motorcycle? @relation(fields: [motorcycleId], references: [id])
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 }
 
 model Promotion {
   id             String      @id @default(uuid())
   title          String
   description    String
-  discountAmount Float?      // Flat amount
-  discountPerc   Float?      // Percentage
+  discountAmount Float?
+  discountPerc   Float?
   startDate      DateTime
   endDate        DateTime
   isActive       Boolean     @default(true)
-  motorcycleId   String?     // Null means site-wide
+  motorcycleId   String?
   motorcycle     Motorcycle? @relation(fields: [motorcycleId], references: [id])
   createdAt      DateTime    @default(now())
 }
 
 model FinancingApplication {
-  id            String        @id @default(uuid())
-  userId        String
-  user          User          @relation(fields: [userId], references: [id])
-  motorcycleId  String
-  motorcycle    Motorcycle    @relation(fields: [motorcycleId], references: [id])
-  downPayment   Float
-  tenureMonths  Int
-  monthlyEst    Float
-  status        FinanceStatus @default(PENDING)
-  createdAt     DateTime      @default(now())
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  motorcycleId String
+  motorcycle   Motorcycle    @relation(fields: [motorcycleId], references: [id])
+  downPayment  Float
+  tenureMonths Int
+  monthlyEst   Float
+  status       FinanceStatus @default(PENDING)
+  createdAt    DateTime      @default(now())
+}
+
+// ==========================================
+// SUPPLY CHAIN MANAGEMENT (SCM) MODELS
+// ==========================================
+
+model Supplier {
+  id            String      @id @default(uuid())
+  name          String
+  contactPerson String?
+  email         String?
+  phone         String?
+  rating        Float       @default(0.0)
+  leadTime      Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  inventories   Inventory[]
+}
+
+model Inventory {
+  id           String     @id @default(uuid())
+  name         String
+  sku          String     @unique
+  quantity     Int        @default(0)
+  reorderPoint Int        @default(10)
+  supplierId   String
+  supplier     Supplier   @relation(fields: [supplierId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  orders       ScmOrder[]
+}
+
+model ScmOrder {
+  id          String    @id @default(uuid())
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  quantity    Int
+  status      String    @default("PENDING")
+  orderDate   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Shipment {
+  id            String   @id @default(uuid())
+  orderId       String
+  status        String   @default("IN_TRANSIT")
+  estimatedDate DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ==========================================
+// SALES / PURCHASE ORDER
+// ==========================================
+
+model SaleOrder {
+  id              String     @id @default(uuid())
+  userId          String
+  user            User       @relation(fields: [userId], references: [id])
+  motorcycleId    String
+  motorcycle      Motorcycle @relation(fields: [motorcycleId], references: [id])
+  quantity        Int        @default(1)
+  totalPrice      Float
+  status          String     @default("PENDING")
+  shippingAddress String
+  notes           String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 }
