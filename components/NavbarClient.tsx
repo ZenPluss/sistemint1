@@ -73,6 +73,14 @@ export default function NavbarClient() {
           <Shield className="h-3.5 w-3.5" /> SCM Admin
         </Link>
       )}
+      {user.role !== 'ADMIN' && (
+        <Link
+          href="/my-activities"
+          className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-400 hover:text-emerald-300 border border-emerald-500/40 rounded-full px-3 py-1.5 transition-all hover:bg-emerald-500/10"
+        >
+          My Activities
+        </Link>
+      )}
       <div className="flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-2">
         <User className="h-4 w-4 text-blue-400" />
         <span className="text-sm font-semibold text-white max-w-[120px] truncate">{user.name}</span>

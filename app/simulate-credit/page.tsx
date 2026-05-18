@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Calculator, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
+import LoginPopup from "@/components/LoginPopup";
 
 type Motorcycle = {
   id: string;
@@ -21,6 +22,7 @@ export default function CreditSimulatorPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const [currency, setCurrency] = useState("USD");
   const currencyRates: any = { USD: 1, EUR: 0.92, IDR: 15600, JPY: 150 };
@@ -60,6 +62,13 @@ export default function CreditSimulatorPage() {
 
   async function handleSubmit() {
     if (!selectedMotorcycle) return;
+    
+    // Check if user is logged in
+    const userJSON = localStorage.getItem("user");
+    if (!userJSON) {
+      setShowLoginPopup(true);
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -223,6 +232,12 @@ export default function CreditSimulatorPage() {
           </div>
         )}
       </main>
+
+      <LoginPopup 
+        isOpen={showLoginPopup} 
+        onClose={() => setShowLoginPopup(false)} 
+        message="Anda harus login terlebih dahulu untuk mengajukan simulasi kredit."
+      />
     </div>
   );
 }

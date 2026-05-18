@@ -81,6 +81,10 @@ export default function LeadsBoardPage() {
           <div className="flex flex-col pt-1">
              <h1 className="text-xl font-semibold tracking-tight leading-none">Lead Management CRM</h1>
           </div>
+          <span className="font-bold tracking-tight text-zinc-400 px-2">|</span>
+          <Link href="/portal/promotions" className="text-sm font-bold text-zinc-500 hover:text-blue-600 transition-colors">
+            Manage Promotions
+          </Link>
         </div>
         <div className="flex items-center gap-4">
           <button 

@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized - Please login first' }, { status: 401 });
 
-    const { motorcycleId, quantity = 1, shippingAddress, notes } = await req.json();
+    const { motorcycleId, quantity = 1, shippingAddress, notes, color, paymentMethod } = await req.json();
 
     if (!motorcycleId || !shippingAddress) {
       return NextResponse.json({ error: 'motorcycleId and shippingAddress are required' }, { status: 400 });
@@ -50,9 +50,12 @@ export async function POST(req: Request) {
         motorcycleId,
         quantity,
         totalPrice,
+        color: color || "Standard",
+        paymentMethod: paymentMethod || "Bank Transfer",
         shippingAddress,
         notes: notes || null,
         status: 'PENDING',
+        paymentStatus: 'PENDING',
       },
       include: { motorcycle: true }
     });
@@ -78,12 +81,29 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const session = await getSession();
-    if (!session || session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id, status } = await req.json();
+    const { id, status, paymentStatus } = await req.json();
+
+    const existingOrder = await prisma.saleOrder.findUnique({ where: { id } });
+    if (!existingOrder) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    // Admins can update anything. Users can only update their own paymentStatus.
+    if (session.role !== 'ADMIN') {
+      if (existingOrder.userId !== session.id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      if (status) {
+        return NextResponse.json({ error: 'Users cannot change order status' }, { status: 403 });
+      }
+    }
+
     const order = await prisma.saleOrder.update({
       where: { id },
-      data: { status },
+      data: { 
+        ...(status && { status }),
+        ...(paymentStatus && { paymentStatus })
+      },
       include: { motorcycle: true, user: { select: { name: true, email: true } } }
     });
 

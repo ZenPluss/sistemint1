@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Calendar, MapPin } from "lucide-react";
 import toast from "react-hot-toast";
+import LoginPopup from "@/components/LoginPopup";
 
 type Motorcycle = {
   id: string;
@@ -25,15 +26,27 @@ export default function TestRideForm({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    // Check if user is logged in
+    const userJSON = localStorage.getItem("user");
+    if (!userJSON) {
+      setShowLoginPopup(true);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(false);
 
+    const user = JSON.parse(userJSON);
+
     const formData = new FormData(e.currentTarget);
     const data = {
+      userId: user.id,
       motorcycleId: formData.get("motorcycleId") as string,
       dealerId: formData.get("dealerId") as string,
       date: formData.get("date") as string,
@@ -206,6 +219,12 @@ export default function TestRideForm({
       >
         {loading ? "Submitting..." : "Confirm Test Ride"}
       </button>
+
+      <LoginPopup 
+        isOpen={showLoginPopup} 
+        onClose={() => setShowLoginPopup(false)} 
+        message="Anda harus login terlebih dahulu untuk membooking Test Ride."
+      />
     </form>
   );
 }

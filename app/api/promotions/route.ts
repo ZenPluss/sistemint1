@@ -1,77 +1,77 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const activeOnly = searchParams.get("active") === "true";
-
-    const now = new Date();
     const promotions = await prisma.promotion.findMany({
-      where: activeOnly
-        ? { isActive: true, startDate: { lte: now }, endDate: { gte: now } }
-        : {},
-      include: { motorcycle: true },
-      orderBy: { startDate: "desc" },
+      orderBy: { createdAt: 'desc' }
     });
-
     return NextResponse.json(promotions);
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch promotions" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
+    const session = await getSession();
+    if (!session || session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    const { title, description, discountAmount, discountPerc, startDate, endDate, isActive } = await req.json();
+
+    if (!title || !description || !startDate || !endDate) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
 
     const promotion = await prisma.promotion.create({
       data: {
-        title: body.title,
-        description: body.description,
-        discountAmount: body.discountAmount ?? null,
-        discountPerc: body.discountPerc ?? null,
-        startDate: new Date(body.startDate),
-        endDate: new Date(body.endDate),
-        isActive: body.isActive ?? true,
-        motorcycleId: body.motorcycleId ?? null,
-      },
+        title,
+        description,
+        discountAmount: discountAmount ? parseFloat(discountAmount) : null,
+        discountPerc: discountPerc ? parseFloat(discountPerc) : null,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        isActive: isActive !== undefined ? isActive : true,
+      }
     });
 
     return NextResponse.json(promotion, { status: 201 });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to create promotion" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function PATCH(req: Request) {
   try {
-    const body = await request.json();
-    const { id, ...data } = body;
+    const session = await getSession();
+    if (!session || session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    if (!id) return NextResponse.json({ error: "Promotion ID required" }, { status: 400 });
+    const { id, isActive } = await req.json();
+    
+    if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
 
     const updated = await prisma.promotion.update({
       where: { id },
-      data,
+      data: { isActive }
     });
 
     return NextResponse.json(updated);
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to update promotion" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(req: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
+    const session = await getSession();
+    if (!session || session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    if (!id) return NextResponse.json({ error: "Promotion ID required" }, { status: 400 });
-
+    const { id } = await req.json();
     await prisma.promotion.delete({ where: { id } });
+
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to delete promotion" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -18,6 +18,8 @@ export default function BuyModal({ motorcycleId, motorcycleName, motorcyclePrice
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [color, setColor] = useState("Standard");
+  const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
 
   // Currency from cookie
   const getCurrency = () => {
@@ -50,7 +52,7 @@ export default function BuyModal({ motorcycleId, motorcycleName, motorcyclePrice
       const res = await fetch("/api/purchases", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ motorcycleId, quantity, shippingAddress, notes }),
+        body: JSON.stringify({ motorcycleId, quantity, shippingAddress, notes, color, paymentMethod }),
       });
 
       toast.dismiss(loadingToast);
@@ -61,8 +63,12 @@ export default function BuyModal({ motorcycleId, motorcycleName, motorcyclePrice
         return;
       }
 
-      toast.success(`🎉 Order placed for ${motorcycleName}! We will confirm soon.`, { duration: 6000 });
+      const resData = await res.json();
+      toast.success(`🎉 Order placed! Redirecting to payment...`, { duration: 3000 });
       setSuccess(true);
+      setTimeout(() => {
+        window.location.href = `/payment?orderId=${resData.id}`;
+      }, 1000);
     } catch (err: any) {
       toast.dismiss(loadingToast);
       toast.error("Network error. Please try again.");
@@ -141,6 +147,38 @@ export default function BuyModal({ motorcycleId, motorcycleName, motorcyclePrice
                     <span className="w-12 text-center font-extrabold text-xl">{quantity}</span>
                     <button type="button" onClick={() => setQuantity(q => q + 1)} className="w-10 h-10 rounded-xl border border-zinc-300 dark:border-zinc-700 flex items-center justify-center text-xl font-bold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">+</button>
                     <span className="ml-auto text-blue-600 font-bold text-lg">{fmt(motorcyclePrice * quantity)}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Color */}
+                  <div>
+                    <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Color</label>
+                    <select
+                      value={color}
+                      onChange={e => setColor(e.target.value)}
+                      className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="Standard">Standard</option>
+                      <option value="Matte Black">Matte Black</option>
+                      <option value="Racing Blue">Racing Blue</option>
+                      <option value="Pearl White">Pearl White</option>
+                      <option value="Candy Red">Candy Red</option>
+                    </select>
+                  </div>
+
+                  {/* Payment Method */}
+                  <div>
+                    <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Payment Method</label>
+                    <select
+                      value={paymentMethod}
+                      onChange={e => setPaymentMethod(e.target.value)}
+                      className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Credit Card">Credit Card</option>
+                      <option value="e-Wallet">e-Wallet</option>
+                    </select>
                   </div>
                 </div>
 

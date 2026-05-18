@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
     const { payload }: any = await jwtVerify(token, SECRET_KEY);
 
     // Role-based access control
-    const isAdminRoute = pathname.startsWith('/portal');
+    const isAdminRoute = pathname.startsWith('/portal') || pathname.startsWith('/admin-scm');
     if (isAdminRoute && payload.role !== 'ADMIN') {
       return NextResponse.redirect(new URL('/', request.url)); // unauthorized
     }

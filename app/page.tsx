@@ -8,12 +8,13 @@ import TestRideForm from "./components/TestRideForm";
 import { prisma } from "@/lib/prisma";
 import NavbarClient from "@/components/NavbarClient";
 import { cookies } from "next/headers";
+import { verifyToken } from "@/lib/auth";
 import AdminPortalSection from "@/components/AdminPortalSection";
 
 // Fallback images based on index
 const fallbacks = [
-  "https://www.globalsuzuki.com/globalnews/2025/img/0731b.jpg",
-  "https://motortrade.com.ph/wp-content/uploads/2024/05/2-6.jpg",
+  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
+  "https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?w=800&q=80",
   "/636ccc8b19ff3.jpg"
 ];
 
@@ -32,6 +33,23 @@ export default async function Home() {
   const currencyRates: any = { USD: 1, EUR: 0.92, IDR: 15600, JPY: 150 };
   const rate = currencyRates[currency] || 1;
   const formatCurrency = (val: number, hideDecimals = true) => new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: hideDecimals ? 0 : 2 }).format(val * rate);
+
+  // Check if user is Admin
+  const token = cookieStore.get('auth_token')?.value;
+  let isAdmin = false;
+  if (token) {
+    const payload: any = await verifyToken(token);
+    if (payload?.role === 'ADMIN') {
+      isAdmin = true;
+    }
+  }
+
+  // Fetch Active Promotions
+  const activePromotions = await prisma.promotion.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: 'desc' },
+    take: 3
+  });
 
   // If DB is empty, use our dummy fallbacks for the UI display only!
   const displayMotorcycles = dbMotorcycles.length > 0 ? dbMotorcycles.map((m, i) => ({
@@ -61,9 +79,9 @@ export default async function Home() {
             </span>
           </Link>
           <nav className="hidden md:flex gap-8 text-sm font-semibold tracking-wide">
-            <Link href="#models" className="text-zinc-200 hover:text-white transition-colors">Models</Link>
-            <Link href="#test-ride" className="text-zinc-200 hover:text-white transition-colors">Test Ride</Link>
-            <Link href="/portal/leads" className="text-zinc-200 hover:text-white transition-colors">Dealers Portal</Link>
+            {!isAdmin && <Link href="#models" className="text-zinc-200 hover:text-white transition-colors">Models</Link>}
+            {!isAdmin && <Link href="#test-ride" className="text-zinc-200 hover:text-white transition-colors">Test Ride</Link>}
+            {isAdmin && <Link href="/portal/leads" className="text-zinc-200 hover:text-white transition-colors">Dealers Portal</Link>}
           </nav>
           {/* Added: NavbarClient shows login/register buttons OR user info + logout after login */}
           <NavbarClient />
@@ -100,23 +118,43 @@ export default async function Home() {
               Discover our latest lineup of sport bikes, adventure motorcycles, and agile scooters designed to conquer every road.
             </p>
             <div className="flex flex-col sm:flex-row gap-5 mt-6 justify-center w-full">
-              <a
-                href="#models"
-                className="group inline-flex h-14 w-full sm:w-auto items-center justify-center rounded-full bg-white px-10 text-base font-extrabold text-zinc-950 shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all hover:scale-105 active:scale-95"
-              >
-                Explore Models <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </a>
-              <a
-                href="#test-ride"
-                className="inline-flex h-14 w-full sm:w-auto items-center justify-center rounded-full border-2 border-white/30 bg-white/10 backdrop-blur-md px-10 text-base font-bold text-white transition-all hover:bg-white/20 hover:scale-105 active:scale-95 shadow-sm"
-              >
-                Book a Test Ride
-              </a>
+              {isAdmin ? (
+                <>
+                  <Link
+                    href="/admin-scm"
+                    className="group inline-flex h-14 w-full sm:w-auto items-center justify-center rounded-full bg-white px-10 text-base font-extrabold text-zinc-950 shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all hover:scale-105 active:scale-95"
+                  >
+                    Manage Inventory <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                  <Link
+                    href="/portal/bookings"
+                    className="inline-flex h-14 w-full sm:w-auto items-center justify-center rounded-full border-2 border-white/30 bg-white/10 backdrop-blur-md px-10 text-base font-bold text-white transition-all hover:bg-white/20 hover:scale-105 active:scale-95 shadow-sm"
+                  >
+                    Manage Bookings
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <a
+                    href="#models"
+                    className="group inline-flex h-14 w-full sm:w-auto items-center justify-center rounded-full bg-white px-10 text-base font-extrabold text-zinc-950 shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all hover:scale-105 active:scale-95"
+                  >
+                    Explore Models <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </a>
+                  <a
+                    href="#test-ride"
+                    className="inline-flex h-14 w-full sm:w-auto items-center justify-center rounded-full border-2 border-white/30 bg-white/10 backdrop-blur-md px-10 text-base font-bold text-white transition-all hover:bg-white/20 hover:scale-105 active:scale-95 shadow-sm"
+                  >
+                    Book a Test Ride
+                  </a>
+                </>
+              )}
             </div>
           </div>
         </section>
 
         {/* Featured Models Section with Hover Cards */}
+        {!isAdmin && (
         <section id="models" className="w-full py-24 md:py-36 bg-[var(--background)] relative">
           <div className="container mx-auto px-6 md:px-12">
             <div className="flex flex-col items-center justify-center space-y-5 text-center mb-20 animate-fade-in-up">
@@ -155,8 +193,10 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        )}
 
         {/* CTA / Test Ride Section - Connected to DB */}
+        {!isAdmin && (
         <section id="test-ride" className="w-full py-24 md:py-36 bg-blue-50 dark:bg-[#030612] relative overflow-hidden">
           <div className="absolute top-0 right-0 p-32 opacity-5 pointer-events-none">
             <Zap className="w-[40rem] h-[40rem] text-blue-600" />
@@ -200,6 +240,7 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Active Promotions Section */}
         <section className="w-full py-24 md:py-32 bg-[#090a0f] text-white relative overflow-hidden isolate">
@@ -215,21 +256,23 @@ export default async function Home() {
               <p className="max-w-2xl text-zinc-400 text-xl font-medium leading-relaxed">Don&apos;t miss out on our exclusive deals and meticulously crafted financing packages.</p>
             </div>
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 max-w-7xl mx-auto">
-              {[
-                { title: "Ramadan Special", desc: "5% off all MATIC models. Limited slots available.", badge: "5% OFF", end: "April 30" },
-                { title: "Free Accessories Pack", desc: "Worth $300 with every test ride booking this month.", badge: "FREE GIFT", end: "April 30" },
-                { title: "GSX-R Year-End Deal", desc: "Flat $500 off on the legendary GSX-R1000R.", badge: "$500 OFF", end: "Dec 31" },
-              ].map((promo, i) => (
-                <div key={i} className="group rounded-[2rem] glass-dark p-10 flex flex-col gap-6 transition-all duration-500 hover:-translate-y-3 hover:bg-white/5 hover:border-blue-500/40 hover:shadow-[0_20px_40px_-15px_rgba(37,99,235,0.3)]">
-                  <span className="self-start rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-1.5 text-xs font-black tracking-widest text-white shadow-lg shadow-blue-900/50">{promo.badge}</span>
-                  <h3 className="font-extrabold text-3xl text-white">{promo.title}</h3>
-                  <p className="text-zinc-400 text-lg flex-1 leading-relaxed font-medium">{promo.desc}</p>
-                  <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-6">
-                    <span className="text-sm font-bold text-zinc-500">Ends {promo.end}</span>
-                    <ArrowRight className="h-6 w-6 text-zinc-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+              {activePromotions.length > 0 ? (
+                activePromotions.map((promo, i) => (
+                  <div key={i} className="group rounded-[2rem] glass-dark p-10 flex flex-col gap-6 transition-all duration-500 hover:-translate-y-3 hover:bg-white/5 hover:border-blue-500/40 hover:shadow-[0_20px_40px_-15px_rgba(37,99,235,0.3)]">
+                    {promo.discountPerc && <span className="self-start rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-1.5 text-xs font-black tracking-widest text-white shadow-lg shadow-blue-900/50">{promo.discountPerc}% OFF</span>}
+                    <h3 className="font-extrabold text-3xl text-white">{promo.title}</h3>
+                    <p className="text-zinc-400 text-lg flex-1 leading-relaxed font-medium">{promo.description}</p>
+                    <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-6">
+                      <span className="text-sm font-bold text-zinc-500">Ends {promo.endDate.toLocaleDateString()}</span>
+                      <ArrowRight className="h-6 w-6 text-zinc-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="col-span-3 text-center text-zinc-500 py-12">
+                  No active promotions at the moment.
                 </div>
-              ))}
+              )}
             </div>
             <div className="mt-20 flex justify-center">
               <Link href="/promotions" className="inline-flex h-14 items-center justify-center rounded-full bg-white px-10 text-base font-extrabold text-zinc-950 shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all hover:bg-zinc-200 hover:scale-105 active:scale-95">
@@ -240,6 +283,7 @@ export default async function Home() {
         </section>
 
         {/* Finance Calculator CTA */}
+        {!isAdmin && (
         <section className="w-full py-20 bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-900 text-white relative">
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay pointer-events-none"></div>
           <div className="container relative z-10 mx-auto px-6 md:px-12 flex flex-col lg:flex-row items-center justify-between gap-12">
@@ -259,6 +303,7 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        )}
 
         <AdminPortalSection />
         {/* Dealer Locations Section */}
